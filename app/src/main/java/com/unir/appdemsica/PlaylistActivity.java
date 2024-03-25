@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -21,10 +22,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PlaylistActivity extends AppCompatActivity {
 
-    private ImageButton btn_importar, btn_parar, btn_tocar,btn_voltar;
+    private ImageButton btn_importar, btn_parar, btn_tocar, btn_voltar,btn_deletar;
     private RadioGroup radioGroup;
 
     private List<String> playlists = new ArrayList<>();
@@ -40,6 +42,7 @@ public class PlaylistActivity extends AppCompatActivity {
         btn_parar = findViewById(R.id.btn_parar);
         btn_tocar = findViewById(R.id.btn_tocar);
         btn_voltar = findViewById(R.id.btn_voltar);
+        btn_deletar = findViewById(R.id.btn_deletar);
         radioGroup = findViewById(R.id.radioGroup);
 
         intent = new Intent(PlaylistActivity.this, MyService.class);
@@ -57,12 +60,12 @@ public class PlaylistActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 RadioButton rb = findViewById(radioGroup.getCheckedRadioButtonId());
-                String filePath = (String) rb.getTag(); // Caminho do arquivo de áudio
+                String filePath = (String) rb.getTag();
                 String musica = rb.getText().toString();
 
                 intent.putExtra("filePath", filePath);
                 intent.putExtra("nome", musica);
-                startForegroundService(intent); // Inicia o serviço apenas quando o botão for acionado
+                startForegroundService(intent);
             }
         });
 
@@ -73,10 +76,26 @@ public class PlaylistActivity extends AppCompatActivity {
             }
         });
 
+        btn_deletar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int selectedId = radioGroup.getCheckedRadioButtonId();
+                if (selectedId != -1) {
+                    RadioButton selectedRadioButton = findViewById(selectedId);
+                    String displayName = selectedRadioButton.getText().toString();
+                    String filePath = (String) selectedRadioButton.getTag();
+
+                    radioGroup.removeView(selectedRadioButton);
+
+                    removeRadioButtonData(displayName, filePath);
+                }
+            }
+        });
+
+
         btn_voltar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Voltar para a MainActivity e passar a lista de playlists
                 Intent intent = new Intent();
                 intent.putStringArrayListExtra("playlists", new ArrayList<>(playlists));
                 setResult(RESULT_OK, intent);
@@ -84,22 +103,9 @@ public class PlaylistActivity extends AppCompatActivity {
             }
         });
 
-        // Lista de playlists
-        String[] playlists = {};
-
-        // Iterar sobre a lista de playlists
-        for (String playlist : playlists) {
-            RadioButton radioButton = new RadioButton(this);
-            radioButton.setText(playlist);
-            radioButton.setTextColor(Color.WHITE); // Define a cor do texto para branco
-            radioGroup.addView(radioButton);
-            radioButton.setChecked(true); // Marca o RadioButton como selecionado
-        }
-
-
+        loadRadioButtonData();
     }
 
-    @SuppressLint("Range")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -108,7 +114,6 @@ public class PlaylistActivity extends AppCompatActivity {
             Uri selectedFileUri = data.getData();
             String displayName = null;
 
-            // Obter o nome do arquivo original
             Cursor cursor = getContentResolver().query(selectedFileUri, null, null, null, null);
             if (cursor != null && cursor.moveToFirst()) {
                 displayName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
@@ -128,21 +133,17 @@ public class PlaylistActivity extends AppCompatActivity {
                     outputStream.close();
                     inputStream.close();
 
-                    // Obter o caminho absoluto do arquivo
                     String absoluteFilePath = file.getAbsolutePath();
 
-                    // Iniciar o serviço com o caminho do arquivo
-                    Intent serviceIntent = new Intent(PlaylistActivity.this, MyService.class);
-                    serviceIntent.putExtra("filePath", absoluteFilePath);
-                    serviceIntent.putExtra("nome", displayName);
-                    startForegroundService(serviceIntent);
+                    String selectedPlaylist = getIntent().getStringExtra("selectedPlaylist");
 
-                    // Criar RadioButton para a música importada
                     RadioButton radioButton = new RadioButton(this);
                     radioButton.setText(displayName);
                     radioButton.setTextColor(Color.WHITE);
                     radioButton.setTag(absoluteFilePath); // Armazenar o caminho do arquivo como tag
                     radioGroup.addView(radioButton);
+
+                    saveRadioButtonData(selectedPlaylist, displayName, absoluteFilePath);
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -150,4 +151,49 @@ public class PlaylistActivity extends AppCompatActivity {
             }
         }
     }
+
+
+
+    private void saveRadioButtonData(String playlistName, String displayName, String filePath) {
+        SharedPreferences sharedPreferences = getSharedPreferences("radioButtonData_" + playlistName, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(displayName, filePath);
+        editor.apply();
+    }
+
+
+    private void loadRadioButtonData() {
+        String selectedPlaylist = getIntent().getStringExtra("selectedPlaylist");
+        SharedPreferences sharedPreferences = getSharedPreferences("radioButtonData_" + selectedPlaylist, MODE_PRIVATE);
+        Map<String, ?> allEntries = sharedPreferences.getAll();
+        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            String displayName = entry.getKey();
+            String filePath = (String) entry.getValue();
+            addRadioButton(displayName, filePath);
+        }
+    }
+
+
+
+    private void addRadioButton(String displayName, String filePath) {
+        RadioButton radioButton = new RadioButton(this);
+        radioButton.setText(displayName);
+        radioButton.setTextColor(Color.WHITE);
+        radioButton.setTag(filePath); // Armazenar o caminho do arquivo como tag
+        radioGroup.addView(radioButton);
+    }
+
+    private void removeRadioButtonData(String displayName, String filePath) {
+        // Recuperar o nome da playlist selecionada
+        String selectedPlaylist = getIntent().getStringExtra("selectedPlaylist");
+
+        // Acessar o SharedPreferences com o nome da playlist
+        SharedPreferences sharedPreferences = getSharedPreferences("radioButtonData_" + selectedPlaylist, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.remove(displayName); // Remove o dado específico do SharedPreferences
+        editor.apply(); // Aplica as alterações
+    }
+
+
+
 }

@@ -21,6 +21,9 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout buttonLayout;
     private List<String> playlists;
 
+    private List<Button> playlistButtons = new ArrayList<>();
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,9 +37,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (hasFocus) {
-                    editText.setHint("");
-                } else {
                     editText.setHint("Escreva o nome da Playlist");
+                } else {
+                    editText.setHint("");
                 }
             }
         });
@@ -77,10 +80,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, PlaylistActivity.class);
-                intent.putStringArrayListExtra("playlists", new ArrayList<>(playlists));
+                intent.putExtra("selectedPlaylist", playlistName); // Passa o nome da playlist selecionada
                 startActivity(intent);
             }
         });
         buttonLayout.addView(button);
     }
+
+
+
 }

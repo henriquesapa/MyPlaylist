@@ -11,7 +11,7 @@
         android:id="@+id/btn_importar"
         android:layout_width="57dp"
         android:layout_height="58dp"
-        android:layout_marginStart="72dp"
+        android:layout_marginStart="36dp"
         android:layout_marginTop="24dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/radioGroup"
@@ -44,10 +44,20 @@
         android:layout_width="57dp"
         android:layout_height="58dp"
         android:layout_marginTop="24dp"
-        android:layout_marginEnd="72dp"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="40dp"
+        app:layout_constraintEnd_toStartOf="@+id/btn_deletar"
         app:layout_constraintTop_toBottomOf="@+id/radioGroup"
         app:srcCompat="@android:drawable/ic_media_play" />
+
+    <ImageButton
+        android:id="@+id/btn_deletar"
+        android:layout_width="57dp"
+        android:layout_height="58dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="36dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/radioGroup"
+        app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
 
     <RadioGroup
         android:id="@+id/radioGroup"
